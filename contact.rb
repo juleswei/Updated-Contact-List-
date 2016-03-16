@@ -1,4 +1,5 @@
-require 'csv'
+require 'pg'
+
 
 # Represents a person in an address book.
 class Contact
@@ -10,6 +11,25 @@ class Contact
     @name = name
     @email = email
     @phones = phones
+  end
+  def self.connection
+    PG.connect(dbname: 'contacts')
+  end
+  def self.create(name, email)
+    new_contact = Contact.new(name, email)    
+    sql_query = "INSERT INTO contacts (name, email) VALUES ($1, $2)"
+    Contact.connection.exec_params(sql_query, [name, email])
+    new_contact
+  end
+    def self.find(id)
+    result = connection.exec_params("SELECT * FROM contacts WHERE id = $1::int", [id])
+    return nil if result.count == 0
+    contact = Contact.new(result[0]['name'],result[0]['email'],result[0]['id']) if result[0] 
+  end
+  def self.find_all()
+    connection.exec_params("SELECT * FROM contacts").map do |row|
+      Contact.new(row['name'], row['email'], row['id']) 
+    end
   end
 
   # Provides functionality for managing a list of Contacts in a database.
